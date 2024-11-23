@@ -1,5 +1,4 @@
 websockets
-base64
 asyncio
 json
 pyaudio
