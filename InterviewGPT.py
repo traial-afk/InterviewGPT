@@ -13,8 +13,8 @@ from collections import deque
 # import streamlit as st  # pip install streamlit
 # import streamlit_authenticator as stauth  # pip install streamlit-authenticator
 
-# emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
-# st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
+ emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
+ st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
 
 
 # --- USER AUTHENTICATION ---
@@ -50,8 +50,8 @@ from collections import deque
 #     st.sidebar.title(f"Welcome {name.upper()}")
 
 #     # ---- MAINPAGE ----
-#     st.title(":brain: InterviewGPT")
-#     st.markdown("##")
+     st.title(":brain: InterviewGPT")
+     st.markdown("##")
 
 #     # # openai api_key
 #     # client = OpenAI(
@@ -65,9 +65,9 @@ client = AsyncGroq(
 # AssemblyAI API key
 auth_key = "DEEPGRAM_API_KEY"
 
-# if "text" not in st.session_state:
-#     st.session_state["text"] = "Listening..."
-#     st.session_state["run"] = False
+ if "text" not in st.session_state:
+     st.session_state["text"] = "Listening..."
+     st.session_state["run"] = False
 text = "Listening..."
 run = False
 
