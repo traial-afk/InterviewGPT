@@ -6,7 +6,8 @@ names = ["snehit", "vaddi", "test"]
 usernames = ["snehit", "vaddi", "test"]
 passwords = ["snehit", "snehit", "test"]
 
-hashed_passwords = stauth.Hasher(passwords).generate()
+# Use generate_hashed_passwords() instead of generate()
+hashed_passwords = stauth.Hasher(passwords).generate_hashed_passwords()
 
 file_path = Path(__file__).parent / "hashed_pw.pkl"
 with file_path.open("wb") as file:
