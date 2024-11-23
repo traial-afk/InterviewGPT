@@ -13,8 +13,8 @@ from collections import deque
 # import streamlit as st  # pip install streamlit
 # import streamlit_authenticator as stauth  # pip install streamlit-authenticator
 
- emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
- st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
+# emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
+# st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
 
 
 # --- USER AUTHENTICATION ---
