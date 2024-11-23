@@ -65,7 +65,7 @@ client = AsyncGroq(
 # AssemblyAI API key
 auth_key = "DEEPGRAM_API_KEY"
 
- if "text" not in st.session_state:
+if "text" not in st.session_state:
      st.session_state["text"] = "Listening..."
      st.session_state["run"] = False
 text = "Listening..."
