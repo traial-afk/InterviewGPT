@@ -50,8 +50,8 @@ from collections import deque
 #     st.sidebar.title(f"Welcome {name.upper()}")
 
 #     # ---- MAINPAGE ----
-     st.title(":brain: InterviewGPT")
-     st.markdown("##")
+st.title(":brain: InterviewGPT")
+st.markdown("##")
 
 #     # # openai api_key
 #     # client = OpenAI(
