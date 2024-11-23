@@ -61,10 +61,10 @@ if authentication_status:
 
     # Groq API
     client = AsyncGroq(
-    api_key="GROQ_API",
-)
+        api_key="GROQ_API",
+    )
     # AssemblyAI API key
-   auth_key = "DEEPGRAM_API_KEY"
+    auth_key = "DEEPGRAM_API_KEY"
 
     if "text" not in st.session_state:
         st.session_state["text"] = "Listening..."
@@ -128,18 +128,18 @@ if authentication_status:
         on_click=lambda: [stop_listening(), apply_differential_privacy()],
     )
 
-   URL = "wss://api.deepgram.com/v1/listen?sample_rate=16000"
+    URL = "wss://api.deepgram.com/v1/listen?sample_rate=16000"
 
     async def send_receive():
 
         print(f"Connecting websocket to url ${URL}")
 
         async with websockets.connect(
-    URL,
-    extra_headers=(("Authorization", f"Token {auth_key}"),),
-    ping_interval=5,
-    ping_timeout=20,
-) as _ws:
+            URL,
+            extra_headers=(("Authorization", f"Token {auth_key}"),),
+            ping_interval=5,
+            ping_timeout=20,
+        ) as _ws:
 
             r = await asyncio.sleep(0.1)
             print("Receiving SessionBegins ...")
@@ -186,8 +186,8 @@ if authentication_status:
                             if result:
                                 # Prepare messages including the full conversation history
                                 messages = [
-                                        {"role": "system", "content": "You are a helpful assistant."}
-                                    ] + list(conversation_history)  
+                                    {"role": "system", "content": "You are a helpful assistant."}
+                                ] + list(conversation_history)  
 
                                 chat_completion = await client.chat.completions.create(
                                     messages=messages,
