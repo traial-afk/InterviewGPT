@@ -1,83 +1,37 @@
-import pickle
-from pathlib import Path
 import websockets
-import base64
 import asyncio
 import json
-from groq import AsyncGroq, Groq
+from groq import AsyncGroq
 import pyaudio
-import spacy
+import streamlit as st
 from collections import deque
 
-# ---- Skipping Streamlit and authentication ----
-# import streamlit as st  # pip install streamlit
-# import streamlit_authenticator as stauth  # pip install streamlit-authenticator
+# Page config
+st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
 
-# emojis: https://www.webfx.com/tools/emoji-cheat-sheet/
-# st.set_page_config(page_title="IntervewGPT", page_icon=":brain:", layout="wide")
+# ---- MAINPAGE ----
+st.title(":brain: InterviewGPT")
+st.markdown("##")
 
-
-# --- USER AUTHENTICATION ---
-# names = ["snehit", "vaddi"]
-# usernames = ["snehit", "vaddi"]
-
-# load hashed passwords
-# file_path = Path(__file__).parent / "hashed_pw.pkl"
-# with file_path.open("rb") as file:
-#     hashed_passwords = pickle.load(file)
-
-# authenticator = stauth.Authenticate(
-#     names,
-#     usernames,
-#     hashed_passwords,
-#     "sales_dashboard",
-#     "abcdef",
-#     cookie_expiry_days=30,
-# )
-
-# name, authentication_status, username = authenticator.login("Login", "main")
-
-# if authentication_status == False:
-#     st.error("Username/password is incorrect")
-
-# if authentication_status == None:
-#     st.warning("Please enter your username and password")
-
-# if authentication_status:
-
-#     # ---- SIDEBAR ----
-#     authenticator.logout("Logout", "sidebar")
-#     st.sidebar.title(f"Welcome {name.upper()}")
-
-#     # ---- MAINPAGE ----
-#st.title(":brain: InterviewGPT")
-#st.markdown("##")
-
-#     # # openai api_key
-#     # client = OpenAI(
-#     # api_key="OPEN_AI_API",
-#     # )
-
-#     # Groq API
+# API setup
 client = AsyncGroq(
-    api_key="GROQ_API",
+    api_key="YOUR_GROQ_API_KEY",
 )
-# AssemblyAI API key
-auth_key = "DEEPGRAM_API_KEY"
+DEEPGRAM_API_KEY = "YOUR_DEEPGRAM_API_KEY"
 
-#if "text" not in st.session_state:
-     st.session_state["text"] = "Listening..."
-     st.session_state["run"] = False
-text = "Listening..."
-run = False
+# Initialize session state
+if "text" not in st.session_state:
+    st.session_state["text"] = "Listening..."
+    st.session_state["run"] = False
 
+# Audio setup
 FRAMES_PER_BUFFER = 8000
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 16000
 p = pyaudio.PyAudio()
 
-# starts recording
+# Start recording
 stream = p.open(
     format=FORMAT,
     channels=CHANNELS,
@@ -87,104 +41,74 @@ stream = p.open(
 )
 
 conversation_history = deque(maxlen=5)
-transcript = []  # Global transcript
+transcript = []
 
 def start_listening():
-    global run
-    run = True
+    st.session_state["run"] = True
 
 def stop_listening():
     with open("conversation.txt", "w") as file:
         file.write("\n".join(transcript))
-    global run
-    run = False
+    st.session_state["run"] = False
 
-def apply_differential_privacy():
-    # Load spaCy model for NER
-    nlp = spacy.load("en_core_web_sm")
+# UI Controls
+start, stop = st.columns(2)
+start.button("Start listening", on_click=start_listening)
+stop.button("Stop listening", on_click=stop_listening)
 
-    with open("conversation.txt", "r") as file:
-        lines = file.readlines()
-
-    # Consider only lines starting with "User:"
-    user_lines = [
-        line[len("User:") :].strip() for line in lines if line.startswith("User:")
-    ]
-    user_text = "\n".join(user_lines)
-
-    # Apply NER and redact sensitive information
-    doc = nlp(user_text)
-    for ent in doc.ents:
-        if ent.label_ in ["PERSON", "ORG", "GPE", "DATE", "PHONE"]:
-            # Redact sensitive information
-            user_text = user_text.replace(ent.text, "[REDACTED]")
-
-    # Write the redacted user text to a new file
-    with open("conversation_redacted.txt", "w") as file:
-        file.write(user_text)
-
-# start_listening()
-# stop_listening()
-# apply_differential_privacy()
-
-URL = "wss://api.deepgram.com/v1/listen?sample_rate=16000"
+# Deepgram WebSocket URL
+DEEPGRAM_URL = "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&language=en-US"
 
 async def send_receive():
-
-    print(f"Connecting websocket to url ${URL}")
-
+    print("Connecting to Deepgram...")
+    
     async with websockets.connect(
-        URL,
-        extra_headers=(("Authorization", f"Token {auth_key}"),),
-        ping_interval=5,
-        ping_timeout=20,
+        DEEPGRAM_URL,
+        extra_headers={
+            "Authorization": f"Token {DEEPGRAM_API_KEY}",
+        }
     ) as _ws:
-
-        r = await asyncio.sleep(0.1)
-        print("Receiving SessionBegins ...")
-
-        session_begins = await _ws.recv()
-        print(session_begins)
-        print("Sending messages ...")
+        print("Connected to Deepgram")
 
         async def send():
-            while run:
+            while st.session_state["run"]:
                 try:
-                    data = stream.read(FRAMES_PER_BUFFER)
-                    data = base64.b64encode(data).decode("utf-8")
-
-                    json_data = json.dumps({"audio_data": str(data)})
-                    r = await _ws.send(json_data)
-
+                    data = stream.read(FRAMES_PER_BUFFER, exception_on_overflow=False)
+                    await _ws.send(data)
                 except websockets.exceptions.ConnectionClosedError as e:
-                    print(e)
-                    assert e.code == 4008
+                    print(f"Send error: {e}")
                     break
-
                 except Exception as e:
-                    print(e)
-                    assert False, "Not a websocket 4008 error"
-
-                r = await asyncio.sleep(0.01)
+                    print(f"Unexpected send error: {e}")
+                    break
+                await asyncio.sleep(0.01)
 
         async def receive():
-            while run:
+            while st.session_state["run"]:
                 try:
                     result_str = await _ws.recv()
-                    result_json = json.loads(result_str)
-                    result = result_json.get("text", "")
-                    if result_json.get("message_type") == "FinalTranscript":
-                        print(result)
-                        text = f"User: {result}"
-                        print(text)
-                        transcript.append(f"User: {result}")  # Global Transcript
-                        conversation_history.append({"role": "user", "content": result})
+                    result = json.loads(result_str)
+                    
+                    # Check if we have a final transcript
+                    if "channel" in result and "alternatives" in result["channel"] and \
+                       len(result["channel"]["alternatives"]) > 0 and \
+                       "transcript" in result["channel"]["alternatives"][0] and \
+                       result["is_final"]:
+                        
+                        transcript_text = result["channel"]["alternatives"][0]["transcript"]
+                        
+                        if transcript_text.strip():  # Only process non-empty transcripts
+                            print(f"User said: {transcript_text}")
+                            
+                            st.session_state["text"] = f"<span style='color: orange;'>User:</span> {transcript_text}"
+                            st.markdown(st.session_state["text"], unsafe_allow_html=True)
+                            transcript.append(f"User: {transcript_text}")
+                            conversation_history.append({"role": "user", "content": transcript_text})
 
-                        if result:
-                            # Prepare messages including the full conversation history
+                            # Generate response using Groq
                             messages = [
                                 {"role": "system", "content": "You are a helpful assistant."}
-                            ] + list(conversation_history)  
+                            ] + list(conversation_history)
 
                             chat_completion = await client.chat.completions.create(
                                 messages=messages,
@@ -196,21 +120,19 @@ async def send_receive():
                             reply = chat_completion.choices[0].message.content
                             print(f"InterviewGPT: {reply}")
                             conversation_history.append({"role": "assistant", "content": reply})
-                            transcript.append(f"InterviewGPT: {reply}")  # Global Transcript
+                            transcript.append(f"InterviewGPT: {reply}")
 
-                            chatText = f"InterviewGPT: {reply}"
-                            print(chatText)
+                            st.session_state["chatText"] = f"<span style='color: green;'>InterviewGPT:</span> {reply}"
+                            st.markdown(st.session_state["chatText"], unsafe_allow_html=True)
 
                 except websockets.exceptions.ConnectionClosedError as e:
-                    print(f"WebSocket connection closed: {e}")
-                    if e.code != 4008:
-                        print("Received unexpected error code from WebSocket.")
+                    print(f"Receive error: {e}")
                     break
-
                 except Exception as e:
-                    print(f"An unexpected error occurred: {e}")
+                    print(f"Unexpected receive error: {e}")
+                    continue
 
+        await asyncio.gather(send(), receive())
 
-        send_result, receive_result = await asyncio.gather(send(), receive())
-
-# asyncio.run(send_receive())
+if __name__ == "__main__":
+    asyncio.run(send_receive())
