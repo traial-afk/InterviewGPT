@@ -1,6 +1,5 @@
 websockets
 asyncio
-json
 pyaudio
 pandas
 plotly-express
